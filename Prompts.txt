@@ -1,0 +1,633 @@
+jamesdanielmarrsritchey: Using C++, write a program which takes a string, and saves it a to a file. Arguments should be passed from the commandline.
+
+GitHub Copilot: Sure, here is a simple C++ program that takes a string from the command line and writes it to a file.
+
+```cpp
+#include <iostream>
+#include <fstream>
+
+int main(int argc, char* argv[]) {
+    if(argc != 3) {
+        std::cerr << "Usage: " << argv[0] << " <filename> <string>\n";
+        return 1;
+    }
+
+    std::ofstream file(argv[1]);
+    if(!file) {
+        std::cerr << "Error opening file " << argv[1] << "\n";
+        return 1;
+    }
+
+    file << argv[2];
+    file.close();
+
+    return 0;
+}
+```
+
+This program expects two command line arguments: the name of the file to write to, and the string to write. It first checks if the correct number of arguments have been provided, and if not, it prints a usage message and exits with a status of 1. It then attempts to open the specified file for writing. If it cannot open the file, it prints an error message and exits with a status of 1. Finally, it writes the specified string to the file and closes the file.
+
+jamesdanielmarrsritchey: The arguments should be formatted as "--string value", and "--destination_file value".
+
+GitHub Copilot: Sure, here is a C++ program that uses command line options in the format you specified.
+
+```cpp
+#include <iostream>
+#include <fstream>
+#include <string>
+
+int main(int argc, char* argv[]) {
+    std::string destination_file;
+    std::string input_string;
+
+    for(int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if(arg == "--destination_file" && i + 1 < argc) {
+            destination_file = argv[++i];
+        } else if(arg == "--string" && i + 1 < argc) {
+            input_string = argv[++i];
+        } else {
+            std::cerr << "Unknown argument: " << arg << "\n";
+            return 1;
+        }
+    }
+
+    if(destination_file.empty() || input_string.empty()) {
+        std::cerr << "Usage: " << argv[0] << " --destination_file <filename> --string <string>\n";
+        return 1;
+    }
+
+    std::ofstream file(destination_file);
+    if(!file) {
+        std::cerr << "Error opening file " << destination_file << "\n";
+        return 1;
+    }
+
+    file << input_string;
+    file.close();
+
+    return 0;
+}
+```
+
+This program loops over the command line arguments. If it encounters `--destination_file` or `--string`, it checks if there is another argument following it. If there is, it uses that as the value for the destination file or the string to write, respectively. If it encounters an argument it doesn't recognize, it prints an error message and exits with a status of 1. After parsing the arguments, it checks if it has values for both the destination file and the string to write. If it doesn't, it prints a usage message and exits with a status of 1. It then attempts to open the specified file for writing. If it cannot open the file, it prints an error message and exits with a status of 1. Finally, it writes the specified string to the file and closes the file.
+
+jamesdanielmarrsritchey: Add an argument formatted as "--file_exists value". If the value is "overwrite", overwrite the file if it already exists. If the value is "append", append to the existing file. If the value is "keep", do not overwrite the existing file. Instead print an error message, and exit 1.
+
+GitHub Copilot: Sure, here is the updated C++ program that includes the `--file_exists` option.
+
+```cpp
+#include <iostream>
+#include <fstream>
+#include <string>
+
+enum class FileExistsOption {
+    Overwrite,
+    Append,
+    Keep
+};
+
+int main(int argc, char* argv[]) {
+    std::string destination_file;
+    std::string input_string;
+    FileExistsOption file_exists_option = FileExistsOption::Overwrite;
+
+    for(int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if(arg == "--destination_file" && i + 1 < argc) {
+            destination_file = argv[++i];
+        } else if(arg == "--string" && i + 1 < argc) {
+            input_string = argv[++i];
+        } else if(arg == "--file_exists" && i + 1 < argc) {
+            std::string option = argv[++i];
+            if(option == "overwrite") {
+                file_exists_option = FileExistsOption::Overwrite;
+            } else if(option == "append") {
+                file_exists_option = FileExistsOption::Append;
+            } else if(option == "keep") {
+                file_exists_option = FileExistsOption::Keep;
+            } else {
+                std::cerr << "Unknown file_exists option: " << option << "\n";
+                return 1;
+            }
+        } else {
+            std::cerr << "Unknown argument: " << arg << "\n";
+            return 1;
+        }
+    }
+
+    if(destination_file.empty() || input_string.empty()) {
+        std::cerr << "Usage: " << argv[0] << " --destination_file <filename> --string <string> [--file_exists <overwrite|append|keep>]\n";
+        return 1;
+    }
+
+    std::ofstream file;
+    if(file_exists_option == FileExistsOption::Append) {
+        file.open(destination_file, std::ios_base::app);
+    } else {
+        file.open(destination_file);
+    }
+
+    if(!file) {
+        std::cerr << "Error opening file " << destination_file << "\n";
+        return 1;
+    }
+
+    if(file_exists_option == FileExistsOption::Keep && file.tellp() != 0) {
+        std::cerr << "File " << destination_file << " already exists\n";
+        return 1;
+    }
+
+    file << input_string;
+    file.close();
+
+    return 0;
+}
+```
+
+This program now includes an enumeration `FileExistsOption` to represent the three possible values for the `--file_exists` option. It also includes a variable `file_exists_option` to store the current value of this option. When it encounters the `--file_exists` argument, it checks the following argument to determine which option was specified. If it encounters an unknown option, it prints an error message and exits with a status of 1. When it opens the file, it checks the value of `file_exists_option` to determine whether to open the file in append mode or overwrite mode. If the `keep` option was specified and the file already exists (i.e., the file's current position is not at the beginning), it prints an error message and exits with a status of 1. Finally, it writes the specified string to the file and closes the file.
+
+jamesdanielmarrsritchey: If the file_exists option is not set, the program should default to "keep".
+
+GitHub Copilot: Sure, to make the program default to "keep" if the `--file_exists` option is not set, you just need to change the initial value of `file_exists_option` to `FileExistsOption::Keep`. Here is the updated code:
+
+```cpp
+// ...
+
+FileExistsOption file_exists_option = FileExistsOption::Keep;
+
+// ...
+```
+
+Now, if the `--file_exists` option is not provided on the command line, the program will behave as if `--file_exists keep` was specified.
+
+jamesdanielmarrsritchey: Add this suggestion to the full program code.
+
+GitHub Copilot: Sure, here is the full program code with the excerpt you provided:
+
+```cpp
+#include <iostream>
+#include <fstream>
+#include <string>
+
+enum class FileExistsOption {
+    Overwrite,
+    Append,
+    Keep
+};
+
+int main(int argc, char* argv[]) {
+    std::string destination_file;
+    std::string input_string;
+    FileExistsOption file_exists_option = FileExistsOption::Keep;
+
+    for(int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if(arg == "--destination_file" && i + 1 < argc) {
+            destination_file = argv[++i];
+        } else if(arg == "--string" && i + 1 < argc) {
+            input_string = argv[++i];
+        } else if(arg == "--file_exists" && i + 1 < argc) {
+            std::string option = argv[++i];
+            if(option == "overwrite") {
+                file_exists_option = FileExistsOption::Overwrite;
+            } else if(option == "append") {
+                file_exists_option = FileExistsOption::Append;
+            } else if(option == "keep") {
+                file_exists_option = FileExistsOption::Keep;
+            } else {
+                std::cerr << "Unknown file_exists option: " << option << "\n";
+                return 1;
+            }
+        } else {
+            std::cerr << "Unknown argument: " << arg << "\n";
+            return 1;
+        }
+    }
+
+    if(destination_file.empty() || input_string.empty()) {
+        std::cerr << "Usage: " << argv[0] << " --destination_file <filename> --string <string> [--file_exists <overwrite|append|keep>]\n";
+        return 1;
+    }
+
+    std::ofstream file;
+    if(file_exists_option == FileExistsOption::Append) {
+        file.open(destination_file, std::ios_base::app);
+    } else {
+        file.open(destination_file);
+    }
+
+    if(!file) {
+        std::cerr << "Error opening file " << destination_file << "\n";
+        return 1;
+    }
+
+    if(file_exists_option == FileExistsOption::Keep && file.tellp() != 0) {
+        std::cerr << "File " << destination_file << " already exists\n";
+        return 1;
+    }
+
+    file << input_string;
+    file.close();
+
+    return 0;
+}
+```
+
+This program takes command line arguments for the destination file, the string to write, and the file exists option. It then writes the string to the file according to the specified options.
+
+jamesdanielmarrsritchey: Currently the program is overwriting the file, even if the file_exists option has a value of keep. It's not supposed to be.
+
+GitHub Copilot: The issue is that the file is being opened before the check for the "keep" option is made. The `std::ofstream` constructor (or `open` method) will create the file if it doesn't exist, so by the time the check for the "keep" option is made, the file already exists.
+
+To fix this, you should check if the file exists before trying to open it. If the "keep" option is set and the file exists, the program should print an error message and exit. Here's how you can do it:
+
+```cpp
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <sys/stat.h>
+
+enum class FileExistsOption {
+    Overwrite,
+    Append,
+    Keep
+};
+
+bool file_exists(const std::string& name) {
+    struct stat buffer;
+    return (stat(name.c_str(), &buffer) == 0);
+}
+
+int main(int argc, char* argv[]) {
+    // ...
+
+    if(file_exists_option == FileExistsOption::Keep && file_exists(destination_file)) {
+        std::cerr << "File " << destination_file << " already exists\n";
+        return 1;
+    }
+
+    std::ofstream file;
+    if(file_exists_option == FileExistsOption::Append) {
+        file.open(destination_file, std::ios_base::app);
+    } else {
+        file.open(destination_file);
+    }
+
+    if(!file) {
+        std::cerr << "Error opening file " << destination_file << "\n";
+        return 1;
+    }
+
+    file << input_string;
+    file.close();
+
+    return 0;
+}
+```
+
+In this code, I've added a `file_exists` function that uses the `stat` system call to check if a file exists. This function is called before trying to open the file. If the "keep" option is set and the file exists, the program prints an error message and exits.
+
+jamesdanielmarrsritchey: Add this suggestion to the full program code.
+
+GitHub Copilot: Sure, here is the full program code with the excerpt you provided and the fix for the "keep" option:
+
+```cpp
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sys/stat.h>
+
+enum class FileExistsOption {
+    Overwrite,
+    Append,
+    Keep
+};
+
+bool file_exists(const std::string& name) {
+    struct stat buffer;
+    return (stat(name.c_str(), &buffer) == 0);
+}
+
+int main(int argc, char* argv[]) {
+    std::string destination_file;
+    std::string input_string;
+    FileExistsOption file_exists_option = FileExistsOption::Keep;
+
+    for(int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if(arg == "--destination_file" && i + 1 < argc) {
+            destination_file = argv[++i];
+        } else if(arg == "--string" && i + 1 < argc) {
+            input_string = argv[++i];
+        } else if(arg == "--file_exists" && i + 1 < argc) {
+            std::string option = argv[++i];
+            if(option == "overwrite") {
+                file_exists_option = FileExistsOption::Overwrite;
+            } else if(option == "append") {
+                file_exists_option = FileExistsOption::Append;
+            } else if(option == "keep") {
+                file_exists_option = FileExistsOption::Keep;
+            } else {
+                std::cerr << "Unknown file_exists option: " << option << "\n";
+                return 1;
+            }
+        } else {
+            std::cerr << "Unknown argument: " << arg << "\n";
+            return 1;
+        }
+    }
+
+    if(destination_file.empty() || input_string.empty()) {
+        std::cerr << "Usage: " << argv[0] << " --destination_file <filename> --string <string> [--file_exists <overwrite|append|keep>]\n";
+        return 1;
+    }
+
+    if(file_exists_option == FileExistsOption::Keep && file_exists(destination_file)) {
+        std::cerr << "File " << destination_file << " already exists\n";
+        return 1;
+    }
+
+    std::ofstream file;
+    if(file_exists_option == FileExistsOption::Append) {
+        file.open(destination_file, std::ios_base::app);
+    } else {
+        file.open(destination_file);
+    }
+
+    if(!file) {
+        std::cerr << "Error opening file " << destination_file << "\n";
+        return 1;
+    }
+
+    file << input_string;
+    file.close();
+
+    return 0;
+}
+```
+
+This program takes command line arguments for the destination file, the string to write, and the file exists option. It then writes the string to the file according to the specified options. If the "keep" option is set and the file already exists, the program will print an error message and exit.
+
+jamesdanielmarrsritchey: If the file exists, and the file_exists argument has a value of "keep", the program should return bool false, and exit 1, without any other error message.
+
+GitHub Copilot: Sure, to make the program return `false` and exit with status code `1` without any error message when the `file_exists_option` is set to `Keep` and the file already exists, you can modify the relevant part of the code as follows:
+
+```cpp
+if(file_exists_option == FileExistsOption::Keep && file_exists(destination_file)) {
+    return 1;
+}
+```
+
+This will cause the program to exit immediately with status code `1` if the file already exists and the `file_exists_option` is set to `Keep`, without printing any error message.
+
+jamesdanielmarrsritchey: Add this suggestion to the full programe code.
+
+GitHub Copilot: Sure, here is the full program code with the excerpt you provided and the fix for the "keep" option:
+
+```cpp
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sys/stat.h>
+
+enum class FileExistsOption {
+    Overwrite,
+    Append,
+    Keep
+};
+
+bool file_exists(const std::string& name) {
+    struct stat buffer;
+    return (stat(name.c_str(), &buffer) == 0);
+}
+
+int main(int argc, char* argv[]) {
+    std::string destination_file;
+    std::string input_string;
+    FileExistsOption file_exists_option = FileExistsOption::Keep;
+
+    for(int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if(arg == "--destination_file" && i + 1 < argc) {
+            destination_file = argv[++i];
+        } else if(arg == "--string" && i + 1 < argc) {
+            input_string = argv[++i];
+        } else if(arg == "--file_exists" && i + 1 < argc) {
+            std::string option = argv[++i];
+            if(option == "overwrite") {
+                file_exists_option = FileExistsOption::Overwrite;
+            } else if(option == "append") {
+                file_exists_option = FileExistsOption::Append;
+            } else if(option == "keep") {
+                file_exists_option = FileExistsOption::Keep;
+            } else {
+                std::cerr << "Unknown file_exists option: " << option << "\n";
+                return 1;
+            }
+        } else {
+            std::cerr << "Unknown argument: " << arg << "\n";
+            return 1;
+        }
+    }
+
+    if(destination_file.empty() || input_string.empty()) {
+        std::cerr << "Usage: " << argv[0] << " --destination_file <filename> --string <string> [--file_exists <overwrite|append|keep>]\n";
+        return 1;
+    }
+
+    if(file_exists_option == FileExistsOption::Keep && file_exists(destination_file)) {
+        return 1;
+    }
+
+    std::ofstream file;
+    if(file_exists_option == FileExistsOption::Append) {
+        file.open(destination_file, std::ios_base::app);
+    } else {
+        file.open(destination_file);
+    }
+
+    if(!file) {
+        std::cerr << "Error opening file " << destination_file << "\n";
+        return 1;
+    }
+
+    file << input_string;
+    file.close();
+
+    return 0;
+}
+```
+
+This program takes command line arguments for the destination file, the string to write, and the file exists option. It then writes the string to the file according to the specified options. If the "keep" option is set and the file already exists, the program will exit with status code `1` without printing any error message.
+
+jamesdanielmarrsritchey: Remove the string argument, and instead use input from stdin.
+
+GitHub Copilot: Sure, to read the input string from `stdin` instead of a command line argument, you can use `std::getline(std::cin, input_string)`. Here's the updated code:
+
+```cpp
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sys/stat.h>
+
+enum class FileExistsOption {
+    Overwrite,
+    Append,
+    Keep
+};
+
+bool file_exists(const std::string& name) {
+    struct stat buffer;
+    return (stat(name.c_str(), &buffer) == 0);
+}
+
+int main(int argc, char* argv[]) {
+    std::string destination_file;
+    std::string input_string;
+    FileExistsOption file_exists_option = FileExistsOption::Keep;
+
+    for(int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if(arg == "--destination_file" && i + 1 < argc) {
+            destination_file = argv[++i];
+        } else if(arg == "--file_exists" && i + 1 < argc) {
+            std::string option = argv[++i];
+            if(option == "overwrite") {
+                file_exists_option = FileExistsOption::Overwrite;
+            } else if(option == "append") {
+                file_exists_option = FileExistsOption::Append;
+            } else if(option == "keep") {
+                file_exists_option = FileExistsOption::Keep;
+            } else {
+                std::cerr << "Unknown file_exists option: " << option << "\n";
+                return 1;
+            }
+        } else {
+            std::cerr << "Unknown argument: " << arg << "\n";
+            return 1;
+        }
+    }
+
+    if(destination_file.empty()) {
+        std::cerr << "Usage: " << argv[0] << " --destination_file <filename> [--file_exists <overwrite|append|keep>]\n";
+        return 1;
+    }
+
+    if(file_exists_option == FileExistsOption::Keep && file_exists(destination_file)) {
+        return 1;
+    }
+
+    std::getline(std::cin, input_string);
+
+    std::ofstream file;
+    if(file_exists_option == FileExistsOption::Append) {
+        file.open(destination_file, std::ios_base::app);
+    } else {
+        file.open(destination_file);
+    }
+
+    if(!file) {
+        std::cerr << "Error opening file " << destination_file << "\n";
+        return 1;
+    }
+
+    file << input_string;
+    file.close();
+
+    return 0;
+}
+```
+
+In this version of the program, the input string is read from `stdin` using `std::getline(std::cin, input_string)`. The `--string` command line argument has been removed.
+
+jamesdanielmarrsritchey: Instead of getting data from stdin, have it copy data from another file. This file will be specified using the argumuent "--source_file value".
+
+GitHub Copilot: Sure, to read the input from a source file specified by the `--source_file` argument, you can use `std::ifstream` to open and read from the file. Here's the updated code:
+
+```cpp
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sys/stat.h>
+
+enum class FileExistsOption {
+    Overwrite,
+    Append,
+    Keep
+};
+
+bool file_exists(const std::string& name) {
+    struct stat buffer;
+    return (stat(name.c_str(), &buffer) == 0);
+}
+
+int main(int argc, char* argv[]) {
+    std::string destination_file;
+    std::string source_file;
+    FileExistsOption file_exists_option = FileExistsOption::Keep;
+
+    for(int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if(arg == "--destination_file" && i + 1 < argc) {
+            destination_file = argv[++i];
+        } else if(arg == "--source_file" && i + 1 < argc) {
+            source_file = argv[++i];
+        } else if(arg == "--file_exists" && i + 1 < argc) {
+            std::string option = argv[++i];
+            if(option == "overwrite") {
+                file_exists_option = FileExistsOption::Overwrite;
+            } else if(option == "append") {
+                file_exists_option = FileExistsOption::Append;
+            } else if(option == "keep") {
+                file_exists_option = FileExistsOption::Keep;
+            } else {
+                std::cerr << "Unknown file_exists option: " << option << "\n";
+                return 1;
+            }
+        } else {
+            std::cerr << "Unknown argument: " << arg << "\n";
+            return 1;
+        }
+    }
+
+    if(destination_file.empty() || source_file.empty()) {
+        std::cerr << "Usage: " << argv[0] << " --destination_file <filename> --source_file <filename> [--file_exists <overwrite|append|keep>]\n";
+        return 1;
+    }
+
+    if(file_exists_option == FileExistsOption::Keep && file_exists(destination_file)) {
+        return
+
+ 
+
+1;
+    }
+
+    std::ifstream source(source_file);
+    if(!source) {
+        std::cerr << "Error opening source file " << source_file << "\n";
+        return 1;
+    }
+
+    std::ofstream destination;
+    if(file_exists_option == FileExistsOption::Append) {
+        destination.open(destination_file, std::ios_base::app);
+    } else {
+        destination.open(destination_file);
+    }
+
+    if(!destination) {
+        std::cerr << "Error opening destination file " << destination_file << "\n";
+        return 1;
+    }
+
+    destination << source.rdbuf();
+    source.close();
+    destination.close();
+
+    return 0;
+}
+```
+
+In this version of the program, the `--source_file` argument is used to specify the source file. The program reads from this file and writes to the destination file. If the "keep" option is set and the destination file already exists, the program will exit with status code `1` without printing any error message.
